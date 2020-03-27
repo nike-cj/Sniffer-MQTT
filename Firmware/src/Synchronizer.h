@@ -11,23 +11,19 @@
 #include <map>
 #include <exception>
 #include <mutex>
-#include <thread>
-#include <sstream>
+#include <condition_variable>
 
 //----- C libraries ------------------------------------------------------------
 
 
 //----- Arduino libraries ------------------------------------------------------
 #include <WiFi.h>
-#include <PubSubClient.h>
 
 //----- ESP32 libraries --------------------------------------------------------
 
 
 //----- custom components ------------------------------------------------------
-// #include "WiFi.h"
-// #include "Status.h"
-// #include "mDNS.h"
+#include "MQTT.h"
 
 
 
@@ -35,91 +31,73 @@
 // types
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-// callback types
-typedef void (*MQTT_CALLBACK) (std::string topic, std::string data);
-
-// enumerative
-enum QoS {
-	AT_MOST_ONCE	= 0,
-	AT_LEAST_ONCE	= 1,
-	EXACTLY_ONCE	= 2
-};
-
-// aggregating struct
-typedef struct {
-	std::string		topic;
-	MQTT_CALLBACK	callback;
-	QoS				qos;
-} topic_t;
 
 
 
 //______________________________________________________________________________
 // class
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-class MQTT: public PubSubClient
+class Synchronizer
 {
+
+	public:
+		//----- constants ------------------------------------------------------
+		// topics setup
+		static const std::string topic_discovery_req;
+		static const std::string topic_discovery_res;
+		static const std::string topic_blink;
+
+		// topics sniffing
+		static const std::string topic_sniffing_start;
+		static const std::string topic_sniffing_data;
+		static const std::string topic_sniffing_stop;
+		static const std::string topic_sniffing_sync;
+
 
 	private:
 		//----- attributes -----------------------------------------------------
 		// connection info
-		WiFiClient*		_wifi;
-		std::string		_client_id;
-		std::string		_broker_address;
-		int				_broker_port;
-		std::string		_broker_uri;
-		std::string		_broker_username;
-		std::string		_broker_password;
-
-		// subscribing info
-		std::map<std::string, topic_t>	_subscription_callbacks;
+		static MQTT*	_mqtt;
 
 		// synchronization info
-		std::mutex		_m;
-		std::thread*	_t;
+		static std::mutex				_m;
+		static std::condition_variable	_cv_setup;
+		static std::condition_variable	_cv_sniff;
 
 
 
 	public:
 		//----- constructors and destructors -----------------------------------
-		MQTT(std::string broker_address, int port = 1883);
-		~MQTT();
+		Synchronizer();
 
 
 
 		//----- methods --------------------------------------------------------
 
 		// connect
-		void start();
+		void init(MQTT* mqtt);
 
-		// disconnect
-		void stop();
-
-		void reconnect();
-
-		// send data
-		void publish(std::string topic, std::string message, QoS qos = QoS::AT_LEAST_ONCE);
-
-		// receive data
-		void subscribe(std::string topic, MQTT_CALLBACK func_ptr, QoS qos = QoS::AT_LEAST_ONCE);
-
-		// stop receiving data
-		void unsubscribe(std::string topic);
+		void request_is_sniffing();
 
 
 
 	private:
-		//----- internal facilities --------------------------------------------
-		// event handler
-		void _event_handler(char* topic, byte* message, unsigned int length);
+		//----- MQTT callbacks -------------------------------------------------
+		static void provide_mac(std::string topic, std::string data);
 
-		// find interesting MQTT subscription callback
-		MQTT_CALLBACK _find_subscription(std::string topic);
+		static void blink(std::string topic, std::string data);
 
-		// unsubscribe all topics
-		void _unsubscribe_all();
+		static void start_sniff(std::string topic, std::string data);
 
-		// re-subscribe all already interesting topics
-		void _resubscribe_all();
 
+
+	public:
+		//----- synchronization facilities -------------------------------------
+		static void wait_setup();
+
+		static void signal_setup();
+
+		static void wait_sniff();
+
+		static void signal_sniff();
 };

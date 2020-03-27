@@ -13,6 +13,7 @@
 
 //----- custom libraries -------------------------------------------------------
 #include "MQTT.h"
+#include "Synchronizer.h"
 #include "Sniffer.h"
 
 
@@ -37,6 +38,7 @@ const std::string mqtt_broker = "jarvis";
 //----- network ----------------------------------------------------------------
 MQTT mqtt(mqtt_broker);
 Sniffer sniffer(5);
+Synchronizer sync;
 
 
 //______________________________________________________________________________
@@ -80,40 +82,34 @@ void setup() {
 	
 	mqtt.start();
 
-	auto callback_heating = [](std::string topic, std::string data) {
-		std::cout << "MQTT callback for 'esp/fuck' topic" << std::endl;
-	};
-	mqtt.subscribe("esp/fuck", callback_heating);
-
 	auto callback_packet = [&](std::list<Packet>& list) {
 		std::cout << "MQTT callback for sniffing terminated" << std::endl;
 		if (!WiFi.isConnected())
 			WiFi.reconnect();
 		mqtt.reconnect();
 		for (auto iterator = list.begin(); iterator != list.end(); ++iterator)
-			mqtt.publish("cristo", "ghghhg");
+			mqtt.publish(Synchronizer::topic_sniffing_data, "packet information");
 	};
 	sniffer.start(callback_packet);
+
+
+	sync.init(&mqtt);
+	sync.request_is_sniffing();
+	Synchronizer::wait_setup();
 }
 
 
 //----- put your main code here, to run repeatedly -----------------------------
 void loop() {
-	// check connection to MQTT broker
-	// if (!mqtt.connected()) {
-	// 	mqtt.reconnect();
-	// }
 
-	// check for received messages
-	mqtt.loop();
+	std::cout << "Waiting for sniff/start command..." << std::endl;
+	Synchronizer::wait_sniff();
 
-	mqtt.publish("cristo", "begin");
+
+	mqtt.publish(Synchronizer::topic_sniffing_data, "begin");
 	mqtt.disconnect();
 	sniffer.sniff();
 	mqtt.reconnect();
-	mqtt.publish("cristo", "terminated");
-
-	//mqtt.publish("esp/gg", "{\"key\":\"value\"}");
-	//mqtt.publish("esp/fuck", "to joke");
-	delay(5000);
+	mqtt.publish(Synchronizer::topic_sniffing_data, "terminated");
+	
 }

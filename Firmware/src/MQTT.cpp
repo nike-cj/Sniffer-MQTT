@@ -30,6 +30,7 @@ MQTT::MQTT(std::string broker_address, int port) {
 MQTT::~MQTT() {
 	// release resources (RAII paradigm)
 	delete _wifi;
+	delete _t;
 }
 
 
@@ -59,6 +60,14 @@ void MQTT::start() {
 	cout << "Attempting MQTT connection...";
 	reconnect();
 	cout << " connected" << endl;
+
+	// start polling thread
+	_t = new thread( [this]() -> void {
+		while (true) {
+			this->loop();
+			delay(1000);
+		}
+	});
 }
 
 
@@ -70,7 +79,8 @@ void MQTT::stop() {
 
 void MQTT::reconnect() {
 	// Loop until we're reconnected
-	while (!connected()) {
+	int err_counter = 0;
+	while (!connected() && err_counter < 5) {
 		Serial.print("Attempting MQTT connection...");
 		// Attempt to connect
 		if (connect(_client_id.c_str())) {
@@ -82,7 +92,13 @@ void MQTT::reconnect() {
 			// Wait 2 seconds before retrying
 			delay(2000);
 		}
+		err_counter++;
 	}
+
+	if (err_counter >= 5)
+		ESP.restart();
+
+	_resubscribe_all();
 }
 
 
@@ -101,7 +117,6 @@ void MQTT::publish(string topic, string message, QoS qos) {
 		cerr << "Publishing failed, retry..." << endl;
 		reconnect();
 	}
-	loop();
 
 	// console output
 	cout << "Publishing MQTT:"
