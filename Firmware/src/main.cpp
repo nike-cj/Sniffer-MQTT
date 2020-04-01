@@ -23,11 +23,11 @@
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
 //----- wifi credentials -------------------------------------------------------
-const std::string ssid = "Vodafone-33596891";
-const std::string password = "ibaaudjhcy7j7p9";
+const std::string ssid = "<INSERT WIFI NAME>";
+const std::string password = "<INSERT WIFI PASSWORD>";
 
 //----- mqtt credentials -------------------------------------------------------
-const std::string mqtt_broker = "jarvis";
+const std::string mqtt_broker = "<INSERT BROKER HOSTNAME>";
 
 
 
@@ -37,20 +37,17 @@ const std::string mqtt_broker = "jarvis";
 
 //----- network ----------------------------------------------------------------
 MQTT mqtt(mqtt_broker);
-Sniffer sniffer(5);
+Sniffer sniffer;
 Synchronizer sync;
 
 
+
 //______________________________________________________________________________
-// functions callback
+// functions signatures
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-void callback(std::string topic, std::string data) {
-	Serial.print("Message arrived on topic: ");
-	Serial.print(topic.c_str());
-	Serial.print(". Message: ");
-	Serial.print(data.c_str());
-}
+void connect_wifi(std::string ssid, std::string password);
+
 
 
 //______________________________________________________________________________
@@ -63,6 +60,51 @@ void setup() {
 	Serial.begin(9600);
 
 	delay(10);
+	connect_wifi(ssid, password);
+	
+	mqtt.start();
+
+	auto callback_packet = [&](std::list<Packet>& list) {
+		std::cout << "MQTT callback for sniffing terminated" << std::endl;
+		if (!WiFi.isConnected())
+			WiFi.reconnect();
+		mqtt.reconnect();
+		for (auto iterator = list.begin(); iterator != list.end(); ++iterator)
+			mqtt.publish(Synchronizer::topic_sniffing_data, "packet information");
+	};
+	sniffer.start(callback_packet);
+
+
+	sync.init(&mqtt, &sniffer);
+	sync.ask_is_sniffing();
+	Synchronizer::wait_setup();
+}
+
+
+//----- put your main code here, to run repeatedly -----------------------------
+void loop() {
+
+	// wait for starting command
+	std::cout << "Waiting for sniff/start command..." << std::endl;
+	Synchronizer::wait_sniff();
+
+	// actually sniff
+	mqtt.disconnect();
+	sniffer.sniff();
+	mqtt.reconnect();
+
+	// signal sniffing terminated
+	std::string message = sync.jsonify_mac();
+	mqtt.publish(Synchronizer::topic_sniffing_stop, message);
+}
+
+
+
+//______________________________________________________________________________
+// functions
+//¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+
+void connect_wifi(std::string ssid, std::string password) {
 	// We start by connecting to a WiFi network
 	Serial.println();
 	Serial.print("Connecting to ");
@@ -79,37 +121,4 @@ void setup() {
 	Serial.println("WiFi connected");
 	Serial.println("IP address: ");
 	Serial.println(WiFi.localIP());
-	
-	mqtt.start();
-
-	auto callback_packet = [&](std::list<Packet>& list) {
-		std::cout << "MQTT callback for sniffing terminated" << std::endl;
-		if (!WiFi.isConnected())
-			WiFi.reconnect();
-		mqtt.reconnect();
-		for (auto iterator = list.begin(); iterator != list.end(); ++iterator)
-			mqtt.publish(Synchronizer::topic_sniffing_data, "packet information");
-	};
-	sniffer.start(callback_packet);
-
-
-	sync.init(&mqtt);
-	sync.request_is_sniffing();
-	Synchronizer::wait_setup();
-}
-
-
-//----- put your main code here, to run repeatedly -----------------------------
-void loop() {
-
-	std::cout << "Waiting for sniff/start command..." << std::endl;
-	Synchronizer::wait_sniff();
-
-
-	mqtt.publish(Synchronizer::topic_sniffing_data, "begin");
-	mqtt.disconnect();
-	sniffer.sniff();
-	mqtt.reconnect();
-	mqtt.publish(Synchronizer::topic_sniffing_data, "terminated");
-	
 }

@@ -95,13 +95,17 @@ class Sniffer
 		static WiFiUDP		_ntp_udp;
 		static NTPClient	_time_client;
 
+		// timestamps
+		static long _device_timestamp;
+		static long _server_timestamp;
+
 		// callback for external code
 		static SNIFFER_CALLBACK _callback_sniffing_terminated;
 
 
 	public:
 		//----- constructors and destructors -----------------------------------
-		Sniffer(int seconds, int starting_channel = CHANNEL_FIRST);
+		Sniffer(int starting_channel = CHANNEL_FIRST);
 
 
 		//----- methods --------------------------------------------------------
@@ -113,6 +117,11 @@ class Sniffer
 
 		// getter for status
 		bool is_sniffing();
+
+		// setter for sniffing parameters
+		void set_duration(int seconds);
+		void set_channel(int channel);
+		void set_timestamp(long server_timestamp);
 
 
 	private:

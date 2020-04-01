@@ -18,12 +18,14 @@
 
 //----- Arduino libraries ------------------------------------------------------
 #include <WiFi.h>
+#include <ArduinoJson.h>
 
 //----- ESP32 libraries --------------------------------------------------------
 
 
 //----- custom components ------------------------------------------------------
 #include "MQTT.h"
+#include "Sniffer.h"
 
 
 
@@ -59,6 +61,9 @@ class Synchronizer
 		// connection info
 		static MQTT*	_mqtt;
 
+		// controlled module
+		static Sniffer*	_sniffer;
+
 		// synchronization info
 		static std::mutex				_m;
 		static std::condition_variable	_cv_setup;
@@ -75,9 +80,13 @@ class Synchronizer
 		//----- methods --------------------------------------------------------
 
 		// connect
-		void init(MQTT* mqtt);
+		void init(MQTT* mqtt, Sniffer* sniffer);
 
-		void request_is_sniffing();
+		// synchronization message
+		void ask_is_sniffing();
+
+		// envelop MAC address in JSON message
+		static std::string jsonify_mac();
 
 
 
@@ -100,4 +109,10 @@ class Synchronizer
 		static void wait_sniff();
 
 		static void signal_sniff();
+
+
+
+	private:
+		//----- internal facilities --------------------------------------------
+		static bool _is_my_mac(String mac_address);
 };

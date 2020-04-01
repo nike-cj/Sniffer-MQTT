@@ -98,7 +98,7 @@ class MQTT: public PubSubClient
 		void reconnect();
 
 		// send data
-		void publish(std::string topic, std::string message, QoS qos = QoS::AT_LEAST_ONCE);
+		void publish(std::string topic, std::string message, bool retained = false);
 
 		// receive data
 		void subscribe(std::string topic, MQTT_CALLBACK func_ptr, QoS qos = QoS::AT_LEAST_ONCE);

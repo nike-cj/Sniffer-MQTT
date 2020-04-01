@@ -15,20 +15,22 @@ using namespace std;
 // definition
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 // static attribute definition
-SNIFFER_CALLBACK Sniffer::_callback_sniffing_terminated;
-std::list<Packet> Sniffer::_list_packets;
-WiFiUDP		Sniffer::_ntp_udp;
-NTPClient	Sniffer::_time_client(Sniffer::_ntp_udp, "europe.pool.ntp.org");
+SNIFFER_CALLBACK	Sniffer::_callback_sniffing_terminated;
+std::list<Packet>	Sniffer::_list_packets;
+WiFiUDP				Sniffer::_ntp_udp;
+long 				Sniffer::_device_timestamp;
+long				Sniffer::_server_timestamp;
+NTPClient			Sniffer::_time_client(Sniffer::_ntp_udp, "europe.pool.ntp.org");
 
 
 
 //______________________________________________________________________________
 // costructors and destructors
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-Sniffer::Sniffer(int seconds, int starting_channel) {
+Sniffer::Sniffer(int starting_channel) {
 	// sniffing parameter
-	this->_seconds = seconds;
-	this->_current_channel = starting_channel;
+	this->_seconds 			= 60;
+	this->_current_channel	= starting_channel;
 }
 
 
@@ -48,10 +50,12 @@ void Sniffer::start(SNIFFER_CALLBACK callback) {
 	_time_client.setTimeOffset(3600); // GMT +1 = 3600 seconds
 }
 
+
 void Sniffer::sniff() {
 
 	// retrieve timestamp (from NTP)
-	Sniffer::_time_client.update();
+	Sniffer::_time_client.forceUpdate();
+	_device_timestamp = millis();
 
 	cout << "Start sniffing probe requests on channel " << _current_channel << endl;
 
@@ -84,6 +88,20 @@ void Sniffer::sniff() {
 }
 
 
+// setter for sniffing parameters
+void Sniffer::set_duration(int seconds) {
+	this->_seconds			= seconds;
+}
+
+void Sniffer::set_channel(int channel) {
+	this->_current_channel	= channel;
+}
+
+void Sniffer::set_timestamp(long server_timestamp) {
+	this->_server_timestamp = server_timestamp;
+}
+
+
 
 //______________________________________________________________________________
 // internal facilities
@@ -100,8 +118,17 @@ void Sniffer::_callback_received_packet(void* buf, wifi_promiscuous_pkt_type_t t
 		//nullptr,
 		124
 	};
-	cout << "received packet at timestamp " << Sniffer::_time_client.getFormattedTime() << endl;
+
+	long millis_from_sniffing_begin = (millis() - _device_timestamp) % 1000;
+	long timestamp = _time_client.getEpochTime() * 1000 + millis_from_sniffing_begin;
+
+
+	cout << "received packet at timestamp " << Sniffer::_time_client.getFormattedTime().c_str()
+		<< " (" << _time_client.getEpochTime() << " + " << millis_from_sniffing_begin << ")" << endl;
 	Sniffer::_list_packets.push_back(packet);
+	return;
+
+
 	
 	// uint64_t epoch = 0; // callback arrival time
 	// uint8_t pkt_type = 0; // packet type

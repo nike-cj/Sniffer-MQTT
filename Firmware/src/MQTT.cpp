@@ -95,15 +95,17 @@ void MQTT::reconnect() {
 		err_counter++;
 	}
 
-	if (err_counter >= 5)
+	if (err_counter >= 5) {
+		cerr << "Unable to reach the broker. Reboot..." << endl;
 		ESP.restart();
+	}
 
 	_resubscribe_all();
 }
 
 
 //----- send data ------------------------------------------------------------------------------------------------------
-void MQTT::publish(string topic, string message, QoS qos) {
+void MQTT::publish(string topic, string message, bool retained) {
 
 	// check wifi connection
 	while (!WiFi.isConnected()) {
@@ -113,7 +115,7 @@ void MQTT::publish(string topic, string message, QoS qos) {
 	}
 
 	// core MQTT level
-	while (!PubSubClient::publish(topic.c_str(), message.c_str(), qos)) {
+	while (!PubSubClient::publish(topic.c_str(), message.c_str(), retained)) {
 		cerr << "Publishing failed, retry..." << endl;
 		reconnect();
 	}
