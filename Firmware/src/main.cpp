@@ -64,13 +64,15 @@ void setup() {
 	
 	mqtt.start();
 
-	auto callback_packet = [&](std::list<Packet>& list) {
+	auto callback_packet = [&](std::list<pkt_data>& list) {
 		std::cout << "MQTT callback for sniffing terminated" << std::endl;
 		if (!WiFi.isConnected())
 			WiFi.reconnect();
 		mqtt.reconnect();
-		for (auto iterator = list.begin(); iterator != list.end(); ++iterator)
-			mqtt.publish(Synchronizer::topic_sniffing_data, "packet information");
+		for (auto iterator = list.begin(); iterator != list.end(); ++iterator) {
+			std::string msg = iterator->jsonify();
+			mqtt.publish(Synchronizer::topic_sniffing_data, msg);
+		}
 	};
 	sniffer.start(callback_packet);
 

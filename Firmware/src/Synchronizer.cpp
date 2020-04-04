@@ -18,10 +18,10 @@ using namespace std;
 const std::string Synchronizer::topic_discovery_req		= "/esp32/setup/discovery/request";
 const std::string Synchronizer::topic_discovery_res		= "/esp32/setup/discovery/response";
 const std::string Synchronizer::topic_blink				= "/esp32/setup/blink";
-const std::string Synchronizer::topic_sniffing_start	= "/esp32/sniff/start";
-const std::string Synchronizer::topic_sniffing_data		= "/esp32/sniff/data";
-const std::string Synchronizer::topic_sniffing_stop		= "/esp32/sniff/stop";
-const std::string Synchronizer::topic_sniffing_sync		= "/esp32/sniff/sync";
+const std::string Synchronizer::topic_sniffing_start	= "/esp32/sniffing/start";
+const std::string Synchronizer::topic_sniffing_data		= "/esp32/sniffing/data";
+const std::string Synchronizer::topic_sniffing_stop		= "/esp32/sniffing/stop";
+const std::string Synchronizer::topic_sniffing_sync		= "/esp32/sniffing/sync";
 
 
 // static attribute definition

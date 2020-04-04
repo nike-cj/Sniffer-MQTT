@@ -1,0 +1,48 @@
+--------------------------------------------------------------------------------
+topic:
+    /esp32/setup/discovery/request
+message:
+    <whatever>
+
+--------------------------------------------------------------------------------
+topic:
+    /esp32/setup/discovery/response
+message:
+    {"mac": "AA:AA:AA:AA:AA:AA"}
+
+--------------------------------------------------------------------------------
+topic:
+    /esp32/setup/blink
+message:
+    {"mac": "AA:AA:AA:AA:AA:AA"}
+
+--------------------------------------------------------------------------------
+topic:
+    /esp32/sniffing/start
+message:
+    {
+        "mac": "AA:AA:AA:AA:AA:AA",
+        "channel": 3,
+        "timestamp": 1586012130,
+        "sniffing_seconds": 60
+    }
+
+--------------------------------------------------------------------------------
+topic:
+    /esp32/sniffing/stop
+message:
+    {"mac":"AA:AA:AA:AA:AA:AA"}
+
+--------------------------------------------------------------------------------
+topic:
+    /esp32/sniffing/data
+message:
+    {
+        "mac": "AA:AA:AA:AA:AA:AA",
+        "rssi": -95,
+        "timestamp": 1586012130,
+        "sequence_number": 505,
+        "hash": -952334881,
+        "probe_req_payload": "0x00 0x11 0x49 0x6e 0x66",
+        "probe_req_payload_len": 5
+    }

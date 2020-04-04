@@ -117,7 +117,7 @@ void MQTT::publish(string topic, string message, bool retained) {
 	// core MQTT level
 	while (!PubSubClient::publish(topic.c_str(), message.c_str(), retained)) {
 		cerr << "Publishing failed, retry..." << endl;
-		reconnect();
+		delay(2000);
 	}
 
 	// console output
