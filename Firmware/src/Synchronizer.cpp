@@ -129,16 +129,7 @@ void Synchronizer::blink(std::string topic, std::string data) {
 		return;
 
 	// actually LED blinking
-	//TODO update with external class
-	int led_pin = 2;
-	pinMode(led_pin, OUTPUT);
-
-	for (int i=0; i<10; i++) {
-		digitalWrite(led_pin, HIGH);
-		delay(100);
-		digitalWrite(led_pin, LOW);
-		delay(100);
-	}
+	Led.blink();
 }
 
 

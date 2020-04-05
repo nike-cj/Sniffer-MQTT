@@ -261,9 +261,6 @@ string pkt_data::jsonify() {
 	string message;
 	serializeJson(doc, message);
 
-	if (message.length() >= 1024)
-		cerr << "message too heavy" << endl;
-
 	// return desired json
 	return message;
 }
