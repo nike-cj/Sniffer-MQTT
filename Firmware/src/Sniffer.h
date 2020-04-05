@@ -95,16 +95,9 @@ typedef void (*SNIFFER_CALLBACK) (std::list<pkt_data>& packet);
 const int CHANNEL_FIRST = 1;
 const int CHANNEL_LAST = 13;
 
-/* USEFUL CONSTANTS */
-#define MAC_LENGTH 18 // length of the MAC address (i.e. da:a1:19:0b:3e:7f + 1 byte for '\0')
-#define METADATA_LEN 32 // length of metadata to be sent to the computer (source MAC, timestamp, RSSI, hash...)
-#define TL_LEN 6 // length of Type + Len fields in buffer to be sent to computer
-#define HEADERLEN 24 // header length for 802.11b\g (non-HT) frames (802.11n frames have 4 more bytes in the header)
-#define SNIFFER_TIME 60000 // value (in milliseconds) we wait before turning off sniffer mode and change channel
-#define DATA_BUFFER_DIM 1400 // length of buffer we send each time to the computer (1400 because in general MTU is 1500 byte)
-#define DEEP_SLEEP_TIME 28800000000 // microseconds (default is 8 hours) to stay in deep sleep (no problem for overflow, parameter is uint64_t)
-#define BLINK_DURATION 5 // led blinking duration in seconds
-#define FREQUENCY 3 // frequency of LED blinking
+// buffers length
+#define MAC_LENGTH 18	// length of the MAC address (i.e. da:a1:19:0b:3e:7f + 1 byte for '\0')
+#define HEADERLEN 24 	// header length for 802.11b\g (non-HT) frames (802.11n frames have 4 more bytes in the header)
 
 
 

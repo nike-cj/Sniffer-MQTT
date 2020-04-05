@@ -109,20 +109,7 @@ void Sniffer::set_timestamp(long server_timestamp) {
 
 //----- event handler ----------------------------------------------------------
 void Sniffer::_callback_received_packet(void* buf, wifi_promiscuous_pkt_type_t type) {
-
-	//TODO fix timestamping
-	ulong millis_from_sniffing_begin = (millis() - _device_timestamp) % 1000;
-	long t = _time_client.getEpochTime();
-	unsigned long timestamp = _time_client.getEpochTime();// * 1000;// + millis_from_sniffing_begin;
-
-	// cout << "received packet at timestamp " << _time_client.getFormattedTime().c_str()
-	// 	<< " (" << timestamp << ") where millis "
-	// 	<< millis() << " - " << _device_timestamp << " = " << millis_from_sniffing_begin << endl;
-	// Sniffer::_list_packets.push_back(packet);
-	// return;
-
-
-	
+	// local variables
 	uint64_t epoch = 0; // callback arrival time
 	uint8_t pkt_type = 0; // packet type
 	uint8_t pkt_subtype = 0; // packet subtype
@@ -133,7 +120,6 @@ void Sniffer::_callback_received_packet(void* buf, wifi_promiscuous_pkt_type_t t
 	uint32_t hash = 0; // digest of the packet
 	char tmp_mac[MAC_LENGTH]; // temporary buffer to store source MAC address
 	string source_mac; // packet's source mac address
-	struct timeval current_time;
 	uint8_t payload_offset = HEADERLEN; // this is the offset of the payload of the probe request within the packet (MAC header included)
 	mac_header_t *header = nullptr; // pointer to the first byte of the captured packet, mac_header_t is a struct that mimics the header
 	wifi_promiscuous_pkt_t *packet_captured = nullptr; // pointer to the packet captured by the ESP32 and passed to the callback
@@ -141,11 +127,7 @@ void Sniffer::_callback_received_packet(void* buf, wifi_promiscuous_pkt_type_t t
 	unique_ptr<char[]> payload_ptr = nullptr; // this is a smart pointer that points to the memory where we dump the payload of the probe request for further analysis
 	
 	// when callback is called get system time as soon as possible
-	if(gettimeofday(&current_time, nullptr) != 0){
-		return; // no reason to go on...the packet must have the right timestamp otherwise it is useless
-	} else {
-		epoch = ((uint64_t)current_time.tv_sec*1000)+((uint64_t)current_time.tv_usec/1000); // convert system time to epoch time
-	}
+	epoch = _time_client.getEpochTime();
 	
 	/* wifi_promiscuous_pkt_t is a type defined by Espressif that includes radio metadata header and a pointer to the packet itself 
 	   including the MAC header. buf is the parameter, received by the callback, that points to the wifi_promiscuous_pkt_t. */
@@ -210,7 +192,7 @@ void Sniffer::_callback_received_packet(void* buf, wifi_promiscuous_pkt_type_t t
 	pkt_data pkt = {
 		source_mac,
 		rssi,
-		t,
+		epoch,
 		seq_num,
 		hash,
 		move(payload_ptr),
