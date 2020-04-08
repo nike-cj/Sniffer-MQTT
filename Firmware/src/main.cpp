@@ -79,25 +79,29 @@ void setup() {
 
 	sync.init(&mqtt, &sniffer);
 	sync.ask_is_sniffing();
-	Synchronizer::wait_setup();
+	
+	std::cout << "Waiting for sniff/start command..." << std::endl;
 }
 
 
 //----- put your main code here, to run repeatedly -----------------------------
 void loop() {
 
-	// wait for starting command
-	std::cout << "Waiting for sniff/start command..." << std::endl;
-	Synchronizer::wait_sniff();
+	// check if server requested to sniff
+	if (sync.is_sniffing()) {
+		// actually sniff
+		mqtt.disconnect();
+		sniffer.sniff();
+		mqtt.reconnect();
 
-	// actually sniff
-	mqtt.disconnect();
-	sniffer.sniff();
-	mqtt.reconnect();
+		// signal sniffing terminated
+		sync.terminate_sniff();
+		std::cout << "Waiting for sniff/start command..." << std::endl;
+	}
 
-	// signal sniffing terminated
-	std::string message = sync.jsonify_mac();
-	mqtt.publish(Synchronizer::topic_sniffing_stop, message);
+	// check MQTT messages
+	mqtt.loop();
+	delay(1000);
 }
 
 

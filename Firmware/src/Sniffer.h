@@ -161,6 +161,9 @@ class Sniffer
 		void set_channel(int channel);
 		void set_timestamp(long server_timestamp);
 
+		// getter for terminated sniff
+		int get_channel_sniffed();
+
 
 	private:
 		//----- internal facilities --------------------------------------------

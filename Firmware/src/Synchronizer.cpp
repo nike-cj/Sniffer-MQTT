@@ -25,11 +25,11 @@ const std::string Synchronizer::topic_sniffing_sync		= "/esp32/sniffing/sync";
 
 
 // static attribute definition
-MQTT*					Synchronizer::_mqtt;
-Sniffer*				Synchronizer::_sniffer;
-std::mutex				Synchronizer::_m;
-std::condition_variable	Synchronizer::_cv_setup;
-std::condition_variable	Synchronizer::_cv_sniff;
+MQTT*			Synchronizer::_mqtt;
+Sniffer*		Synchronizer::_sniffer;
+std::mutex		Synchronizer::_m;
+bool			Synchronizer::_is_sniffing = false;
+int				Synchronizer::_server_challenge = -1;
 
 
 
@@ -133,7 +133,10 @@ void Synchronizer::blink(std::string topic, std::string data) {
 }
 
 
-void Synchronizer::start_sniff(std::string topic, std::string data) {
+void Synchronizer::start_sniff(std::string topic, std::string data)
+{
+	// lock
+	lock_guard<mutex> lg(_m);
 
 	// parse JSON message
 	int len = JSON_OBJECT_SIZE(4) + data.length();	// capacity for a JSON with 1 members + string duplication
@@ -150,6 +153,7 @@ void Synchronizer::start_sniff(std::string topic, std::string data) {
 	int channel				= doc["channel"].as<int>();
 	int timestamp 			= doc["timestamp"].as<int>();
 	long sniffing_seconds	= doc["sniffing_seconds"].as<long>();
+	int server_challenge	= doc["server_challenge"].as<int>();
 
 	// check target
 	if (!_is_my_mac(mac))
@@ -163,11 +167,15 @@ void Synchronizer::start_sniff(std::string topic, std::string data) {
 	if (doc.containsKey("timestamp"))
 		_sniffer->set_timestamp(timestamp);
 
+	// store synchronization parameters (or keep default)
+	if (doc.containsKey("server_challenge"))
+		_server_challenge = server_challenge;
+	else
+		_server_challenge = -1;
+
 	// start sniffing
-	cout << "Start sniffing" << endl;
-	signal_setup();
-	delay(1000);
-	signal_sniff();
+	cout << "Sniffing requested" << endl;
+	_is_sniffing = true;
 }
 
 
@@ -176,31 +184,38 @@ void Synchronizer::start_sniff(std::string topic, std::string data) {
 // synchronization facilities
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-void Synchronizer::wait_setup() {
-
-	unique_lock<mutex> ul(_m);
-	_cv_setup.wait(ul);
+bool Synchronizer::is_sniffing()
+{
+	unique_lock<mutex> lg(_m);
+	return _is_sniffing;
 }
 
 
-void Synchronizer::signal_setup() {
-
+void Synchronizer::terminate_sniff()
+{
+	// lock
 	lock_guard<mutex> lg(_m);
-	_cv_setup.notify_all();
-}
 
+	// retrieve its own MAC address
+	String mac = WiFi.macAddress();
 
-void Synchronizer::wait_sniff() {
+	// serialize JSON message
+	int len = JSON_OBJECT_SIZE(3) + mac.length();	// capacity for a JSON with 3 members + string duplication
+	DynamicJsonDocument doc(len);
 
-	unique_lock<mutex> ul(_m);
-	_cv_sniff.wait(ul);
-}
+	doc["mac"] 				= mac;
+	doc["channel"] 			= _sniffer->get_channel_sniffed();
+	if (_server_challenge != -1)
+		doc["server_challenge"] = _server_challenge;
+	string message;
+	serializeJson(doc, message);
 
+	// notify the server
+	_mqtt->publish(Synchronizer::topic_sniffing_stop, message);
 
-void Synchronizer::signal_sniff() {
-
-	lock_guard<mutex> lg(_m);
-	_cv_sniff.notify_all();
+	// terminate sniffing
+	_is_sniffing = false;
+	_server_challenge = -1;
 }
 
 

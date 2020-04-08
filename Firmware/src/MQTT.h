@@ -76,7 +76,6 @@ class MQTT: public PubSubClient
 
 		// synchronization info
 		std::mutex		_m;
-		std::thread*	_t;
 
 
 

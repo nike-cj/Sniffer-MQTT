@@ -30,7 +30,6 @@ MQTT::MQTT(std::string broker_address, int port) {
 MQTT::~MQTT() {
 	// release resources (RAII paradigm)
 	delete _wifi;
-	delete _t;
 }
 
 
@@ -60,14 +59,6 @@ void MQTT::start() {
 	cout << "Attempting MQTT connection...";
 	reconnect();
 	cout << " connected" << endl;
-
-	// start polling thread
-	_t = new thread( [this]() -> void {
-		while (true) {
-			this->loop();
-			delay(1000);
-		}
-	});
 }
 
 

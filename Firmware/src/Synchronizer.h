@@ -66,9 +66,9 @@ class Synchronizer
 		static Sniffer*	_sniffer;
 
 		// synchronization info
-		static std::mutex				_m;
-		static std::condition_variable	_cv_setup;
-		static std::condition_variable	_cv_sniff;
+		static std::mutex	_m;
+		static bool			_is_sniffing;
+		static int			_server_challenge;
 
 
 
@@ -103,13 +103,9 @@ class Synchronizer
 
 	public:
 		//----- synchronization facilities -------------------------------------
-		static void wait_setup();
+		static bool is_sniffing();
 
-		static void signal_setup();
-
-		static void wait_sniff();
-
-		static void signal_sniff();
+		static void terminate_sniff();
 
 
 

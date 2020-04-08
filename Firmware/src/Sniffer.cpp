@@ -101,6 +101,11 @@ void Sniffer::set_timestamp(long server_timestamp) {
 	this->_server_timestamp = server_timestamp;
 }
 
+// getter for terminated sniff
+int Sniffer::get_channel_sniffed() {
+	return _current_channel-1;
+}
+
 
 
 //______________________________________________________________________________
@@ -249,7 +254,8 @@ string pkt_data::jsonify() {
 	DynamicJsonDocument doc(len);
 
 	// insert single fields
-	doc["mac"] = mac_address;
+	doc["mac_sniffer"] = WiFi.macAddress();
+	doc["mac_packet"] = mac_address;
 	doc["rssi"] = rssi;
 	doc["timestamp"] = timestamp;
 	doc["sequence_number"] = seq_number;

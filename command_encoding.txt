@@ -22,6 +22,7 @@ topic:
 message:
     {
         "mac": "AA:AA:AA:AA:AA:AA",
+		"server_challenge": 70,
         "channel": 3,
         "timestamp": 1586012130,
         "sniffing_seconds": 60
@@ -31,14 +32,19 @@ message:
 topic:
     /esp32/sniffing/stop
 message:
-    {"mac":"AA:AA:AA:AA:AA:AA"}
+    {
+		"mac":"AA:AA:AA:AA:AA:AA",
+		"channel": 3,
+		"server_challenge": 70
+	}
 
 --------------------------------------------------------------------------------
 topic:
     /esp32/sniffing/data
 message:
     {
-        "mac": "AA:AA:AA:AA:AA:AA",
+        "mac_sniffer": "AA:AA:AA:AA:AA:AA",
+		"mac_packet": "BB:BB:BB:BB:BB:BB",
         "rssi": -95,
         "timestamp": 1586012130,
         "sequence_number": 505,
