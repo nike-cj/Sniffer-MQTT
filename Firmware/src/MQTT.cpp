@@ -112,7 +112,7 @@ void MQTT::publish(string topic, string message, bool retained) {
 	}
 
 	// console output
-	cout << "Publishing MQTT:"
+	log_debug << "Publishing MQTT:"
 		<< "\n\ttopic: " << topic
 		<< "\n\tdata: " << message << endl;
 }
@@ -179,7 +179,7 @@ void MQTT::_event_handler(char* topic, byte* message, unsigned int length) {
 	}
 
 	// notify the event
-	cout << "Received MQTT message:"
+	log_debug << "Received MQTT message:"
 		<< "\n\ttopic: " << _topic
 		<< "\n\tmessage: " << _message << endl;
 

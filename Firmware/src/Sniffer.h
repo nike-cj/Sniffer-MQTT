@@ -37,9 +37,7 @@
 
 
 //----- custom components ------------------------------------------------------
-// #include "WiFi.h"
-// #include "Status.h"
-// #include "mDNS.h"
+#include "Log.h"
 
 
 
@@ -60,8 +58,9 @@ typedef struct {
 
 	std::string jsonify();
 	std::string bytes2string(char* data, int len);
+	uint32_t fingerprint(char* data, int len);
 
-} pkt_data;
+} Packet;
 
 
 /*	this structure is used to grab the 802.11 header of the probe request packet which normally consists of 24 byte
@@ -84,7 +83,7 @@ typedef struct {
 
 
 // callback types
-typedef void (*SNIFFER_CALLBACK) (std::list<pkt_data>& packet);
+typedef void (*SNIFFER_CALLBACK) (std::list<Packet>& packet);
 
 
 
@@ -127,7 +126,7 @@ class Sniffer
 	public:
 		//----- static variables -----------------------------------------------
 		// list of packet sniffed
-		static std::list<pkt_data> _list_packets;
+		static std::list<Packet> _list_packets;
 
 		// time-handling information
 		static WiFiUDP		_ntp_udp;

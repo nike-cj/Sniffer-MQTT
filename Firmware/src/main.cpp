@@ -15,6 +15,7 @@
 #include "MQTT.h"
 #include "Synchronizer.h"
 #include "Sniffer.h"
+#include "Log.h"
 
 
 
@@ -64,7 +65,7 @@ void setup() {
 	
 	mqtt.start();
 
-	auto callback_packet = [&](std::list<pkt_data>& list) {
+	auto callback_packet = [&](std::list<Packet>& list) {
 		std::cout << "MQTT callback for sniffing terminated" << std::endl;
 		if (!WiFi.isConnected())
 			WiFi.reconnect();

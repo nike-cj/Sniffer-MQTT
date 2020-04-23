@@ -16,7 +16,7 @@ using namespace std;
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 // static attribute definition
 SNIFFER_CALLBACK	Sniffer::_callback_sniffing_terminated;
-std::list<pkt_data>	Sniffer::_list_packets;
+std::list<Packet>	Sniffer::_list_packets;
 WiFiUDP				Sniffer::_ntp_udp;
 long 				Sniffer::_device_timestamp;
 long				Sniffer::_server_timestamp;
@@ -212,7 +212,7 @@ void Sniffer::_callback_received_packet(void* buf, wifi_promiscuous_pkt_type_t t
 		hash = _djb2((unsigned char*)packet_ptr, pkt_totlen); // compute the hash of the packet
 	}
 	
-	pkt_data pkt = {
+	Packet pkt = {
 		source_mac,
 		rssi,
 		t,
@@ -246,11 +246,15 @@ uint32_t Sniffer::_djb2(unsigned char *data, size_t len){
 
 
 
+//______________________________________________________________________________
+// Packet methods
+//¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 
-string pkt_data::jsonify() {
+//----- serialize Packet fields in JSON encoding -------------------------------
+string Packet::jsonify() {
 
 	// create the object
-	int len = JSON_OBJECT_SIZE(7) + mac_address.length() + 5*probe_req_payload_len;	// capacity for a JSON with 7 members + string duplication
+	int len = JSON_OBJECT_SIZE(9) + 2*mac_address.length() + 5*probe_req_payload_len;	// capacity for a JSON with 9 members + string duplication
 	DynamicJsonDocument doc(len);
 
 	// insert single fields
@@ -260,6 +264,7 @@ string pkt_data::jsonify() {
 	doc["timestamp"] = timestamp;
 	doc["sequence_number"] = seq_number;
 	doc["hash"] = hash;
+	doc["fingerprint"] = fingerprint(probe_req_payload.get(), probe_req_payload_len);
 	doc["probe_req_payload"] = bytes2string(probe_req_payload.get(), probe_req_payload_len);
 	doc["probe_req_payload_len"] = probe_req_payload_len;
 
@@ -272,7 +277,8 @@ string pkt_data::jsonify() {
 }
 
 
-string pkt_data::bytes2string(char* data, int len) {
+//----- serialize payload bytes in in JSON encoding ----------------------------
+string Packet::bytes2string(char* data, int len) {
 	// local variable
 	stringstream ss;
 
@@ -286,4 +292,61 @@ string pkt_data::bytes2string(char* data, int len) {
 
 	// return string of hexadecimals
 	return ss.str();
+}
+
+
+//----- compute payload fingerprint --------------------------------------------
+uint32_t Packet::fingerprint(char* data, int len)
+{
+	// local variable
+	byte fingerprint_array[len]; 
+    char tag_list[len];
+    int index = 0;
+	int count_tag = 0, count_fingerprint = 0;
+
+	// iterate through the payload
+    while(index < len) {
+        byte tag = (byte)data[index];
+        tag_list[count_tag++] = tag;
+
+        int tagLength = (int)data[index + 1];
+
+        if(tag == 0x01)	{	// Supported Rates
+			for(int i = index + 2; i < index + 2 + tagLength; i++)
+				fingerprint_array[count_fingerprint++] = data[i];
+		
+		}
+		else if(tag == 0x2D) {	// HT Info
+			for(int i = index +2; i < index + 2 + tagLength; i++)
+				fingerprint_array[count_fingerprint++] = data[i];
+		}
+		else if(tag == 0x32) {	// Extended Support Rates
+			for(int i = index +2; i < index + 2 + tagLength; i++)
+				fingerprint_array[count_fingerprint++] = data[i];
+		}
+		/*
+		else if(tag == 0x7F) {	// Extended Capabilities Rocket
+			for(int i = index +2; i < index + 2 + tagLength; i++)
+				fingerprint_array[count_fingerprint++] = data[i];
+		}
+		else if(tag == 0xDD) {	// Vendor Info Rocket
+			for(int i = index +2; i < index + 2 + tagLength; i++)
+				fingerprint_array[count_fingerprint++] = data[i];
+		}*/
+
+		index = index + 2 + tagLength;
+	}
+
+	// possible second fingerprint on ordered list of tags
+	//for(int i = 0; i < tag_c; i++)
+	//	fingerprint_array[count_fingerprint++] = tagList[i]
+
+	//hash function to calculate fingerprint
+	uint32_t hash = 5381;
+	for(int i=0; i<count_fingerprint; i++){
+		hash = hash * 33 ^ fingerprint_array[i];
+	}
+	
+	// return unsigned long
+	return hash;
 }

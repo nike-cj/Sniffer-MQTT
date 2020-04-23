@@ -25,9 +25,7 @@
 
 
 //----- custom components ------------------------------------------------------
-// #include "WiFi.h"
-// #include "Status.h"
-// #include "mDNS.h"
+#include "Log.h"
 
 
 
